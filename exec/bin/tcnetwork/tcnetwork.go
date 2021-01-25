@@ -18,8 +18,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -39,6 +41,7 @@ var tcIgnorePeerPorts bool
 var actionType string
 var reorderGap string
 var correlation string
+var tcLocalIP string
 
 const delimiter = ","
 const (
@@ -55,6 +58,8 @@ func main() {
 	flag.StringVar(&delayNetOffset, "offset", "", "delay offset")
 	flag.StringVar(&netPercent, "percent", "", "loss percent")
 	flag.StringVar(&tcLocalPort, "local-port", "", "local ports, for example: 80,8080,8081")
+	// 添加 local-ip 参数，为interface 设置为auto时，自动查到匹配的IP网卡 ， add by fuzz
+	flag.StringVar(&tcLocalIP, "local-ip", "", "Specifies the local network interface IP address, used in conjunction with --interface")
 	flag.StringVar(&tcRemotePort, "remote-port", "", "remote ports, for example: 80,8080,8081")
 	flag.StringVar(&tcExcludePort, "exclude-port", "", "exclude ports, for example: 22,23")
 	flag.StringVar(&tcDestinationIp, "destination-ip", "", "destination ip")
@@ -71,7 +76,17 @@ func main() {
 	if tcNetInterface == "" {
 		bin.PrintErrAndExit("less --interface flag")
 	}
-
+	if tcNetInterface == "auto" {
+		if tcLocalIP != "" {
+			var err error
+			tcNetInterface, err = autoInterface(tcLocalIP)
+			if err != nil {
+				bin.PrintErrAndExit("get interface dev from local-ip faild, " + err.Error())
+			}
+		} else {
+			bin.PrintErrAndExit("current interface flag is auto,but local-ip parameter not specified")
+		}
+	}
 	if tcNetStart {
 		var classRule string
 		switch actionType {
@@ -418,4 +433,26 @@ func getPeerPorts(port string) ([]string, error) {
 		}
 	}
 	return mappingPorts, nil
+}
+
+// 解析如果interface参数为auto，并且指定了local-ip 时，对应的网卡
+func autoInterface(ip string) (string, error) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+	for _, i := range interfaces {
+		if strings.Contains(i.Flags.String(), "up") {
+			addrs, err := i.Addrs()
+			if err == nil {
+				for _, addr := range addrs {
+					ipaddr := strings.Split(addr.String(), "/")[0]
+					if ip == ipaddr {
+						return i.Name, nil
+					}
+				}
+			}
+		}
+	}
+	return "", errors.New("not found interface dev")
 }
