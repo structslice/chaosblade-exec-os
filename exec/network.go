@@ -68,6 +68,11 @@ var commFlags = []spec.ExpFlagSpec{
 		Desc: "Ports for local service. Support for configuring multiple ports, separated by commas or connector representing ranges, for example: 80,8000-8080",
 	},
 	&spec.ExpFlag{
+		Name:     "local-ip",
+		Desc:     "Specifies the local network interface IP address, used in conjunction with --interface",
+		Required: false,
+	},
+	&spec.ExpFlag{
 		Name: "remote-port",
 		Desc: "Ports for remote service. Support for configuring multiple ports, separated by commas or connector representing ranges, for example: 80,8000-8080",
 	},
