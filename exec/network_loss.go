@@ -98,6 +98,14 @@ func (nle *NetworkLossExecutor) Exec(uid string, ctx context.Context, model *spe
 		if netInterface == "" {
 			return spec.ReturnFail(spec.Code[spec.IllegalParameters], "less interface flag")
 		}
+		//解析网卡
+		if netInterface == "auto" {
+			localIP := model.ActionFlags["local-ip"]
+			netInterface, err = AutoInterface(localIP)
+			if err != nil {
+				return spec.ReturnFail(spec.Code[spec.IllegalParameters], "get interface dev from local-ip faild, "+err.Error())
+			}
+		}
 		dev = netInterface
 	}
 	if _, ok := spec.IsDestroy(ctx); ok {

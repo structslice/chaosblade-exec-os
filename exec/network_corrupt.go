@@ -88,6 +88,13 @@ func (ce *NetworkCorruptExecutor) Exec(uid string, ctx context.Context, model *s
 	if netInterface == "" {
 		return spec.ReturnFail(spec.Code[spec.IllegalParameters], "less interface parameter")
 	}
+	if netInterface == "auto" {
+		localIP := model.ActionFlags["local-ip"]
+		netInterface, err = AutoInterface(localIP)
+		if err != nil {
+			return spec.ReturnFail(spec.Code[spec.IllegalParameters], "get interface dev from local-ip faild, "+err.Error())
+		}
+	}
 	if _, ok := spec.IsDestroy(ctx); ok {
 		return ce.stop(netInterface, ctx)
 	} else {

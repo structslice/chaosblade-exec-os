@@ -18,10 +18,8 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
 
@@ -30,6 +28,7 @@ import (
 	"github.com/chaosblade-io/chaosblade-spec-go/util"
 	"github.com/sirupsen/logrus"
 
+	"github.com/chaosblade-io/chaosblade-exec-os/exec"
 	"github.com/chaosblade-io/chaosblade-exec-os/exec/bin"
 )
 
@@ -79,7 +78,7 @@ func main() {
 	if tcNetInterface == "auto" {
 		if tcLocalIP != "" {
 			var err error
-			tcNetInterface, err = autoInterface(tcLocalIP)
+			tcNetInterface, err = exec.AutoInterface(tcLocalIP)
 			if err != nil {
 				bin.PrintErrAndExit("get interface dev from local-ip faild, " + err.Error())
 			}
@@ -433,26 +432,4 @@ func getPeerPorts(port string) ([]string, error) {
 		}
 	}
 	return mappingPorts, nil
-}
-
-// 解析如果interface参数为auto，并且指定了local-ip 时，对应的网卡
-func autoInterface(ip string) (string, error) {
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-	for _, i := range interfaces {
-		if strings.Contains(i.Flags.String(), "up") {
-			addrs, err := i.Addrs()
-			if err == nil {
-				for _, addr := range addrs {
-					ipaddr := strings.Split(addr.String(), "/")[0]
-					if ip == ipaddr {
-						return i.Name, nil
-					}
-				}
-			}
-		}
-	}
-	return "", errors.New("not found interface dev")
 }
